@@ -1,0 +1,16 @@
+bfs1:
+Path cost: X
+Nodes expanded: X
+
+dfs1:
+Path cost: X
+Nodes expanded: X
+
+gbfs1:
+Path cost: X
+Nodes expanded: X
+
+astar1:
+Path cost: X
+Nodes expanded: X
+
