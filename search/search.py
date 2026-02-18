@@ -20,6 +20,55 @@ def gen_polygons(worldfilepath):
             polygons.append(polygon)
     return polygons
 
+def neighbors(p):
+    x, y = p
+    return [(x, y+1), (x+1, y), (x, y-1), (x-1, y)] # up, right, down, left
+
+def in_bounds(p):
+    x, y = p # unpacks x and y from the tuple p
+    return 0 <= x < 50 and 0 <= y < 50 # makes sure we stay on the 50x50 grid
+
+def point_on_edge(ax, ay, bx, by, px, py):
+    cross = (px -ax) * (by - ay) - (py - ay) * (bx - ax)
+    if cross != 0:
+        return False
+    return (min(ax, bx) <= px <= max(ax, bx)) and (min(ay, by) <= py <= max(ay, by))
+
+def point_on_polygon_border(p, polygon):
+    px, py = p
+    n = len(polygon)
+    for i in range(n):
+        a = polygon[i]
+        b = polygon[(i + 1) % n]
+        if point_on_edge(a.x, a.y, b.x, b.y, px, py):
+            return True
+    return False
+
+def point_in_polygon(p, polygon):
+    px, py = p
+    inside = False
+    n = len(polygon)
+
+    for i in range(n):
+        a = polygon[i]
+        b = polygon[(i + 1) % n]
+        ax, ay = a.x, a.y
+        bx, by = b.x, b.y
+
+        # does the edge cross the horizontal line y = py?
+        if (a.y > py) != (b.y > py):
+            x_intersect = (b.x - a.x) * (py - a.y) / (b.y - a.y) + a.x
+            if px < x_intersect:
+                inside = not inside
+
+    return inside
+
+def blocked_by_enclosure(p, epolygons):
+    for polygon in epolygons:
+        if point_on_polygon_border(p, polygon) or point_in_polygon(p, polygon):
+            return True
+    return False
+
 if __name__ == "__main__":
     epolygons = gen_polygons('TestingGrid/world1_enclosures.txt')
     tpolygons = gen_polygons('TestingGrid/world1_turfs.txt')
