@@ -69,6 +69,11 @@ def blocked_by_enclosure(p, epolygons):
             return True
     return False
 
+# ================== BFS Search ==================
+# ================== DFS Search ==================
+# ================== GBFS Search ==================
+# ================== A* Search ==================
+
 if __name__ == "__main__":
     epolygons = gen_polygons('TestingGrid/world1_enclosures.txt')
     tpolygons = gen_polygons('TestingGrid/world1_turfs.txt')
