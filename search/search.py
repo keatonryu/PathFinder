@@ -70,6 +70,54 @@ def blocked_by_enclosure(p, epolygons):
     return False
 
 # ================== BFS Search ==================
+
+# rebuilds the path from the start to goal using the parent dictionary
+def reconstruct_path(parent, start, goal):
+    current = goal
+    path = []
+
+    while current is not None:
+        path.append(current)
+        current = parent[current]
+
+    path.reverse()
+    return path
+
+def bfs(start, goal, epolygons):
+    frontier = Queue() # places we will explore next
+    frontier.push(start)
+
+    parent = {} # remembers where each node came from
+    parent[start] = None
+    
+    explored = set() 
+    nodes_expanded = 0
+
+    while not frontier.isEmpty():
+        current = frontier.pop()
+        nodes_expanded += 1
+
+        if current == goal:
+            path = reconstruct_path(parent, start, goal)
+            steps = len(path) - 1
+            return path, steps, nodes_expanded
+        
+        explored.add(current)
+
+        for neighbor in neighbors(current):
+
+            if not in_bounds(neighbor):
+                continue
+
+            if blocked_by_enclosure(neighbor, epolygons):
+                continue
+
+            if neighbor not in explored and neighbor not in parent:
+                parent[neighbor] = current
+                frontier.push(neighbor)
+
+    return None, None, nodes_expanded
+
 # ================== DFS Search ==================
 # ================== GBFS Search ==================
 # ================== A* Search ==================
@@ -78,8 +126,8 @@ if __name__ == "__main__":
     epolygons = gen_polygons('TestingGrid/world1_enclosures.txt')
     tpolygons = gen_polygons('TestingGrid/world1_turfs.txt')
 
-    source = Point(24,17)
-    dest = Point(28,20)
+    source = Point(8,10)
+    dest = Point(43,45)
 
     fig, ax = draw_board()
     draw_grids(ax)
@@ -104,8 +152,20 @@ if __name__ == "__main__":
 
     #### Here call your search to compute and collect res_path
 
-    res_path = [Point(24,17), Point(25,17), Point(26,17), Point(27,17),  
-                Point(28,17), Point(28,18), Point(28,19), Point(28,20)]
+    ## res_path = [Point(24,17), Point(25,17), Point(26,17), Point(27,17),  
+                ## Point(28,17), Point(28,18), Point(28,19), Point(28,20)]
+    start = (source.x, source.y)
+    goal = (dest.x, dest.y)
+
+    path_tuples, steps, expanded = bfs(start, goal, epolygons)
+
+    print("BFS steps:", steps)
+    print("Nodes expanded:", expanded)
+
+    res_path = []
+    if path_tuples:
+        for(x, y) in path_tuples:
+            res_path.append(Point(x, y))
     
     for i in range(len(res_path)-1):
         draw_result_line(ax, [res_path[i].x, res_path[i+1].x], [res_path[i].y, res_path[i+1].y])
