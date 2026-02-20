@@ -32,7 +32,7 @@ def draw_grids(ax):
     # draw the horizontal lines
     for y in range(MAX):
         ax.plot([0, MAX-1], [y,y], color = '0.75', linestyle='dotted')
-    ax.set_position([0,0.02,1,1])
+    ax.set_position([0,0.02,1,0.9])
 
 def draw_point(ax, x, y):
     ax.plot(x,y,'o',markersize=4,

@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.animation as animation
 import math
 
 from utils import *
@@ -275,13 +274,13 @@ if __name__ == "__main__":
         path_cost = result[3] if len(result) > 3 else steps  # For BFS and DFS, path cost is just the number of steps
         if path_tuples is None:
             print(f"{name} - No path found. Nodes Expanded: {expanded}")
+            path_cost = "N/A"
         else:
             print(f"{name} - Steps: {steps}, Nodes Expanded: {expanded}, Path Cost: {path_cost}")
 
         # moved everything here inside the for name loop
         fig, ax = draw_board()
         draw_grids(ax)
-        ax.set_title(f"Pathfinding Visualization: {name}")
         draw_source(ax, source.x, source.y)  # source point
         draw_dest(ax, dest.x, dest.y)  # destination point
         
@@ -289,7 +288,6 @@ if __name__ == "__main__":
         for polygon in epolygons:
             for p in polygon:
                 draw_point(ax, p.x, p.y)
-        for polygon in epolygons:
             for i in range(0, len(polygon)):
                 draw_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
         
@@ -297,11 +295,8 @@ if __name__ == "__main__":
         for polygon in tpolygons:
             for p in polygon:
                 draw_green_point(ax, p.x, p.y) 
-        for polygon in tpolygons:
             for i in range(0, len(polygon)):
                 draw_green_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
-
-        #### Here call your search to compute and collect res_path
 
         res_path = []
         if path_tuples:
@@ -310,7 +305,7 @@ if __name__ == "__main__":
         
         for i in range(len(res_path)-1):
             draw_result_line(ax, [res_path[i].x, res_path[i+1].x], [res_path[i].y, res_path[i+1].y])
-            plt.pause(0.1)
-    
+
+        ax.set_title(f"{name}")
 plt.show()
 
