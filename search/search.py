@@ -9,7 +9,7 @@ def gen_polygons(worldfilepath):
     polygons = []
     with open(worldfilepath, "r") as f:
         lines = f.readlines()
-        lines = [line[:-1] for line in lines]
+        lines = [line.strip() for line in lines if line.strip()] # remove empty lines
         for line in lines:
             polygon = []
             pts = line.split(';')
@@ -19,20 +19,24 @@ def gen_polygons(worldfilepath):
             polygons.append(polygon)
     return polygons
 
+# up, right, down, left
 def neighbors(p):
     x, y = p
-    return [(x, y+1), (x+1, y), (x, y-1), (x-1, y)] # up, right, down, left
+    return [(x, y+1), (x+1, y), (x, y-1), (x-1, y)]
 
+# stay on the 50x50 grid boundaries
 def in_bounds(p):
-    x, y = p # unpacks x and y from the tuple p
-    return 0 <= x < 50 and 0 <= y < 50 # makes sure we stay on the 50x50 grid
+    x, y = p
+    return 0 <= x < 50 and 0 <= y < 50 
 
+# checks if point p lies on the edge between points a and b
 def point_on_edge(ax, ay, bx, by, px, py):
     cross = (px -ax) * (by - ay) - (py - ay) * (bx - ax)
     if cross != 0:
         return False
     return (min(ax, bx) <= px <= max(ax, bx)) and (min(ay, by) <= py <= max(ay, by))
 
+# checks if point p is on any edge of the polygon
 def point_on_polygon_border(p, polygon):
     px, py = p
     n = len(polygon)
@@ -43,6 +47,7 @@ def point_on_polygon_border(p, polygon):
             return True
     return False
 
+# algorithm to check if point p is inside a polygon
 def point_in_polygon(p, polygon):
     px, py = p
     inside = False
@@ -62,12 +67,14 @@ def point_in_polygon(p, polygon):
 
     return inside
 
+# returns true if point p is inside or on the border of any polygon in epolygons
 def blocked_by_enclosure(p, epolygons):
     for polygon in epolygons:
         if point_on_polygon_border(p, polygon) or point_in_polygon(p, polygon):
             return True
     return False
 
+# action cost
 def action_cost(p, tpolygons):
     for polygon in tpolygons:
         if point_on_polygon_border(p, polygon) or point_in_polygon(p, polygon):
@@ -133,7 +140,7 @@ def dfs(start, goal, epolygons):
 
     while not todo.isEmpty():
         current = todo.pop()
-        if current in explored:
+        if current in explored: # skip expanded nodes
             continue
 
         nodes_expanded += 1
@@ -177,7 +184,7 @@ def gbfs(start, goal, epolygons, tpolygons):
     while not todo.isEmpty():
         current = todo.pop()
 
-        if current in explored:
+        if current in explored: # skip explored nodes
             continue
 
         explored.add(current)
@@ -190,6 +197,8 @@ def gbfs(start, goal, epolygons, tpolygons):
                 current = parent[current]
             path.reverse()
             steps = len(path) - 1
+
+            # calculates path cost
             path_cost = sum(action_cost(path[i], tpolygons) for i in range(1, len(path)))
             return path, steps, nodes_expanded, path_cost
         
@@ -209,7 +218,7 @@ def gbfs(start, goal, epolygons, tpolygons):
 def astar(start, goal, epolygons, tpolygons):
     todo = PriorityQueue() # Min-heap based priority queue for A*
 
-    g = {}
+    g = {} # stores actual cost from start to each node
     g[start] = 0
 
     todo.push(start, g[start] + heuristic(start, goal)) # priority = g(n) + h(n), g(n) is 0 for the start node
@@ -223,7 +232,7 @@ def astar(start, goal, epolygons, tpolygons):
     while not todo.isEmpty():
         current = todo.pop()
 
-        if current in explored:
+        if current in explored: # skip explored nodes
             continue
 
         explored.add(current)
@@ -253,11 +262,11 @@ def astar(start, goal, epolygons, tpolygons):
     return None, None, nodes_expanded, None
 
 if __name__ == "__main__":
-    epolygons = gen_polygons('TestingGrid/world1_enclosures.txt')
-    tpolygons = gen_polygons('TestingGrid/world1_turfs.txt')
+    epolygons = gen_polygons('TestingGrid/world2_enclosures.txt')
+    tpolygons = gen_polygons('TestingGrid/world2_turfs.txt')
 
-    source = Point(8,10)
-    dest = Point(43,45)
+    source = Point(5,5)
+    dest = Point(45,46)
     start = (source.x, source.y)
     goal = (dest.x, dest.y)
 
@@ -288,13 +297,15 @@ if __name__ == "__main__":
         for polygon in epolygons:
             for p in polygon:
                 draw_point(ax, p.x, p.y)
+        for polygon in epolygons:
             for i in range(0, len(polygon)):
                 draw_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
         
         # Draw turf polygons
         for polygon in tpolygons:
             for p in polygon:
-                draw_green_point(ax, p.x, p.y) 
+                draw_green_point(ax, p.x, p.y)
+        for polygon in tpolygons: 
             for i in range(0, len(polygon)):
                 draw_green_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
 
