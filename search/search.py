@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import time
 import matplotlib.animation as animation
 import math
 
