@@ -279,38 +279,39 @@ if __name__ == "__main__":
         else:
             print(f"{name} - Steps: {steps}, Nodes Expanded: {expanded}, Path Cost: {path_cost}")
 
-    fig, ax = draw_board()
-    draw_grids(ax)
-    ax.set_title(f"Pathfinding Visualization: {name}")
-    draw_source(ax, source.x, source.y)  # source point
-    draw_dest(ax, dest.x, dest.y)  # destination point
-    
-    # Draw enclosure polygons
-    for polygon in epolygons:
-        for p in polygon:
-            draw_point(ax, p.x, p.y)
-    for polygon in epolygons:
-        for i in range(0, len(polygon)):
-            draw_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
-    
-    # Draw turf polygons
-    for polygon in tpolygons:
-        for p in polygon:
-            draw_green_point(ax, p.x, p.y) 
-    for polygon in tpolygons:
-        for i in range(0, len(polygon)):
-            draw_green_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
+        # moved everything here inside the for name loop
+        fig, ax = draw_board()
+        draw_grids(ax)
+        ax.set_title(f"Pathfinding Visualization: {name}")
+        draw_source(ax, source.x, source.y)  # source point
+        draw_dest(ax, dest.x, dest.y)  # destination point
+        
+        # Draw enclosure polygons
+        for polygon in epolygons:
+            for p in polygon:
+                draw_point(ax, p.x, p.y)
+        for polygon in epolygons:
+            for i in range(0, len(polygon)):
+                draw_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
+        
+        # Draw turf polygons
+        for polygon in tpolygons:
+            for p in polygon:
+                draw_green_point(ax, p.x, p.y) 
+        for polygon in tpolygons:
+            for i in range(0, len(polygon)):
+                draw_green_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
 
-    #### Here call your search to compute and collect res_path
+        #### Here call your search to compute and collect res_path
 
-    res_path = []
-    if path_tuples:
-        for(x, y) in path_tuples:
-            res_path.append(Point(x, y))
+        res_path = []
+        if path_tuples:
+            for(x, y) in path_tuples:
+                res_path.append(Point(x, y))
+        
+        for i in range(len(res_path)-1):
+            draw_result_line(ax, [res_path[i].x, res_path[i+1].x], [res_path[i].y, res_path[i+1].y])
+            plt.pause(0.1)
     
-    for i in range(len(res_path)-1):
-        draw_result_line(ax, [res_path[i].x, res_path[i+1].x], [res_path[i].y, res_path[i+1].y])
-        plt.pause(0.1)
-    
-    plt.show()
+plt.show()
 
