@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import matplotlib.animation as animation
+import math
 
 from utils import *
 from grid import *
@@ -69,10 +70,14 @@ def blocked_by_enclosure(p, epolygons):
             return True
     return False
 
-# ================== BFS Search ==================
+def action_cost(p, tpolygons):
+    for polygon in tpolygons:
+        if point_on_polygon_border(p, polygon) or point_in_polygon(p, polygon):
+            return 1.5
+    return 1.0
 
 # rebuilds the path from the start to goal using the parent dictionary
-def reconstruct_path(parent, start, goal):
+def reconstruct_path(parent, goal):
     current = goal
     path = []
 
@@ -83,44 +88,171 @@ def reconstruct_path(parent, start, goal):
     path.reverse()
     return path
 
-def bfs(start, goal, epolygons):
-    frontier = Queue() # places we will explore next
-    frontier.push(start)
+# ================== BFS Search ==================
 
-    parent = {} # remembers where each node came from
+def bfs(start, goal, epolygons):
+    todo = Queue() # FIFO structure for BFS
+    todo.push(start)
+
+    parent = {} 
     parent[start] = None
     
     explored = set() 
     nodes_expanded = 0
 
-    while not frontier.isEmpty():
-        current = frontier.pop()
+    while not todo.isEmpty():
+        current = todo.pop()
         nodes_expanded += 1
 
         if current == goal:
-            path = reconstruct_path(parent, start, goal)
+            path = reconstruct_path(parent, goal)
             steps = len(path) - 1
             return path, steps, nodes_expanded
         
         explored.add(current)
 
         for neighbor in neighbors(current):
-
             if not in_bounds(neighbor):
                 continue
-
             if blocked_by_enclosure(neighbor, epolygons):
                 continue
-
             if neighbor not in explored and neighbor not in parent:
                 parent[neighbor] = current
-                frontier.push(neighbor)
+                todo.push(neighbor)
 
     return None, None, nodes_expanded
 
 # ================== DFS Search ==================
+def dfs(start, goal, epolygons):
+    todo = Stack() # LIFO structure for DFS
+    todo.push(start)
+
+    parent = {}
+    parent[start] = None
+
+    explored = set()
+    nodes_expanded = 0
+
+    while not todo.isEmpty():
+        current = todo.pop()
+        if current in explored:
+            continue
+
+        nodes_expanded += 1
+
+        if current == goal:
+            path = reconstruct_path(parent, goal)
+            steps = len(path) - 1
+            return path, steps, nodes_expanded
+        
+        explored.add(current)
+
+        for neighbor in neighbors(current):
+            if not in_bounds(neighbor):
+                continue
+            if blocked_by_enclosure(neighbor, epolygons):
+                continue
+            if neighbor not in explored and neighbor not in parent:
+                parent[neighbor] = current
+                todo.push(neighbor)
+
+    return None, None, nodes_expanded
+
+# Pythagorean theorem (straight line distance) heuristic function
+def heuristic(p, goal):
+    x1, y1 = p
+    x2, y2 = goal
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
 # ================== GBFS Search ==================
+
+def gbfs(start, goal, epolygons, tpolygons):
+    todo = PriorityQueue() # Min-heap based priority queue for GBFS
+    todo.push(start, heuristic(start, goal)) # priority = h(n)
+
+    parent = {}
+    parent[start] = None
+
+    explored = set()
+    nodes_expanded = 0
+
+    while not todo.isEmpty():
+        current = todo.pop()
+
+        if current in explored:
+            continue
+
+        explored.add(current)
+        nodes_expanded += 1
+
+        if current == goal:
+            path = []
+            while current is not None:
+                path.append(current)
+                current = parent[current]
+            path.reverse()
+            steps = len(path) - 1
+            path_cost = sum(action_cost(path[i], tpolygons) for i in range(1, len(path)))
+            return path, steps, nodes_expanded, path_cost
+        
+        for neighbor in neighbors(current):
+            if not in_bounds(neighbor):
+                continue
+            if blocked_by_enclosure(neighbor, epolygons):
+                continue
+            if neighbor not in explored and neighbor not in parent:
+                parent[neighbor] = current
+                todo.push(neighbor, heuristic(neighbor, goal))
+
+    return None, None, nodes_expanded, None
+
 # ================== A* Search ==================
+
+def astar(start, goal, epolygons, tpolygons):
+    todo = PriorityQueue() # Min-heap based priority queue for A*
+
+    g = {}
+    g[start] = 0
+
+    todo.push(start, g[start] + heuristic(start, goal)) # priority = g(n) + h(n), g(n) is 0 for the start node
+    
+    parent = {}
+    parent[start] = None
+
+    explored = set()
+    nodes_expanded = 0
+
+    while not todo.isEmpty():
+        current = todo.pop()
+
+        if current in explored:
+            continue
+
+        explored.add(current)
+        nodes_expanded += 1
+
+        if current == goal:
+            path = []
+            while current is not None:
+                path.append(current)
+                current = parent[current]
+            path.reverse()
+            steps = len(path) - 1
+            return path, steps, nodes_expanded, g[goal]
+        
+        for neighbor in neighbors(current):
+            if not in_bounds(neighbor):
+                continue
+            if blocked_by_enclosure(neighbor, epolygons):
+                continue
+            if neighbor not in explored:
+                new_g = g[current] + action_cost(neighbor, tpolygons)
+                if neighbor not in g or new_g < g[neighbor]:
+                    parent[neighbor] = current
+                    g[neighbor] = new_g
+                    todo.push(neighbor, g[neighbor] + heuristic(neighbor, goal))
+
+    return None, None, nodes_expanded, None
 
 if __name__ == "__main__":
     epolygons = gen_polygons('TestingGrid/world1_enclosures.txt')
@@ -128,9 +260,28 @@ if __name__ == "__main__":
 
     source = Point(8,10)
     dest = Point(43,45)
+    start = (source.x, source.y)
+    goal = (dest.x, dest.y)
+
+    results = {
+        "BFS": bfs(start, goal, epolygons),
+        "DFS": dfs(start, goal, epolygons),
+        "GBFS": gbfs(start, goal, epolygons, tpolygons),
+        "A*": astar(start, goal, epolygons, tpolygons)
+    }
+
+    # prints resutls for each search algorithm
+    for name, result in results.items():
+        path_tuples, steps, expanded = result[0], result[1], result[2]
+        path_cost = result[3] if len(result) > 3 else steps  # For BFS and DFS, path cost is just the number of steps
+        if path_tuples is None:
+            print(f"{name} - No path found. Nodes Expanded: {expanded}")
+        else:
+            print(f"{name} - Steps: {steps}, Nodes Expanded: {expanded}, Path Cost: {path_cost}")
 
     fig, ax = draw_board()
     draw_grids(ax)
+    ax.set_title(f"Pathfinding Visualization: {name}")
     draw_source(ax, source.x, source.y)  # source point
     draw_dest(ax, dest.x, dest.y)  # destination point
     
@@ -145,22 +296,12 @@ if __name__ == "__main__":
     # Draw turf polygons
     for polygon in tpolygons:
         for p in polygon:
-            draw_green_point(ax, p.x, p.y)
+            draw_green_point(ax, p.x, p.y) 
     for polygon in tpolygons:
         for i in range(0, len(polygon)):
             draw_green_line(ax, [polygon[i].x, polygon[(i+1)%len(polygon)].x], [polygon[i].y, polygon[(i+1)%len(polygon)].y])
 
     #### Here call your search to compute and collect res_path
-
-    ## res_path = [Point(24,17), Point(25,17), Point(26,17), Point(27,17),  
-                ## Point(28,17), Point(28,18), Point(28,19), Point(28,20)]
-    start = (source.x, source.y)
-    goal = (dest.x, dest.y)
-
-    path_tuples, steps, expanded = bfs(start, goal, epolygons)
-
-    print("BFS steps:", steps)
-    print("Nodes expanded:", expanded)
 
     res_path = []
     if path_tuples:
